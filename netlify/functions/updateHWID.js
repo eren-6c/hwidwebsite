@@ -1,125 +1,145 @@
-// netlify/functions/updateHWID.js
-import fetch from 'node-fetch';
-
-export async function handler(event) {
-  const { category, username, password, updatedhwid } = event.queryStringParameters || {};
-
-  if (!category || !username || !password || updatedhwid === undefined) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: 'Missing category, username, password, or updatedhwid' }),
-    };
-  }
-
-  // ✅ Use the server-side environment token (secure, not exposed to clients)
-  const apiToken = process.env.TOKEN6C;
-
-  // 2. Fetch token permissions from GitHub raw file
-  const TOKEN_FILE_URL = process.env.GITHUB_TOKEN_FILE_URL;
-  if (!TOKEN_FILE_URL) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'Token file URL not configured' }) };
-  }
-
-  let tokens;
-  try {
-    const tokenResp = await fetch(TOKEN_FILE_URL);
-    if (!tokenResp.ok) throw new Error('Failed to fetch token file');
-    tokens = await tokenResp.json();
-  } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: 'Failed to read token permissions' }) };
-  }
-
-  // 3. Check token validity & write permissions
-  const tokenData = tokens[apiToken];
-  if (!tokenData) {
-    return { statusCode: 403, body: JSON.stringify({ error: 'Invalid API token' }) };
-  }
-
-  const allowedWriteCategories = tokenData.write || [];
-  if (!allowedWriteCategories.includes(category)) {
-    return { statusCode: 403, body: JSON.stringify({ error: 'Token does not have write permission for this category' }) };
-  }
-
-  // 4. Fetch user database from GitHub
-  const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-  const GITHUB_USER = process.env.GITHUB_USER;
-  const GITHUB_REPO = process.env.GITHUB_REPO;
-  const GITHUB_FILE = process.env.GITHUB_FILE;
-
-  const fileUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILE}`;
-
-  try {
-    const getRes = await fetch(fileUrl, {
-      headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
-
-    if (!getRes.ok) throw new Error('Failed to fetch GitHub file');
-
-    const fileData = await getRes.json();
-    const sha = fileData.sha;
-    const content = JSON.parse(Buffer.from(fileData.content, 'base64').toString('utf-8'));
-
-    // 5. Check if user exists
-    if (!content[category] || !content[category][username]) {
-      return { statusCode: 404, body: JSON.stringify({ error: 'User not found' }) };
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HWID Reset | ErenXiters</title>
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
     }
 
-    const user = content[category][username];
-
-    // 6. Check password
-    if (user.password !== password) {
-      return { statusCode: 401, body: JSON.stringify({ error: 'Invalid password' }) };
+    .container {
+        background: rgba(0, 0, 0, 0.75);
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 0 25px rgba(0,0,0,0.5);
+        width: 100%;
+        max-width: 400px;
     }
 
-    // 7. Check lastReset (optional: enforce 1 reset/month)
-    const now = new Date();
-    if (user.lastReset) {
-      const lastResetDate = new Date(user.lastReset);
-      const diffDays = (now - lastResetDate) / (1000 * 60 * 60 * 24);
-      if (diffDays < 30) {
-        return {
-          statusCode: 403,
-          body: JSON.stringify({ error: 'HWID can only be reset once per month' }),
-        };
-      }
+    h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #00ffc6;
     }
 
-    // 8. Update HWID and lastReset
-    content[category][username].hwid = '';
-    content[category][username].lastReset = now.toISOString(); // adds lastReset field
-
-    // 9. Commit changes to GitHub
-    const commitRes = await fetch(fileUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `token ${GITHUB_TOKEN}`,
-        Accept: 'application/vnd.github.v3+json',
-      },
-      body: JSON.stringify({
-        message: `Reset HWID for user ${username} in category ${category}`,
-        content: Buffer.from(JSON.stringify(content, null, 2)).toString('base64'),
-        sha,
-      }),
-    });
-
-    if (!commitRes.ok) {
-      const errData = await commitRes.json();
-      throw new Error(errData.message || 'Failed to update GitHub file');
+    label {
+        display: block;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        font-weight: bold;
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        success: true,
-        message: `HWID reset successfully for ${username}`,
-        lastReset: content[category][username].lastReset,
-      }),
-    };
+    input, select, button {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: none;
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
 
-  } catch (err) {
-    return { statusCode: 500, body: JSON.stringify({ error: err.message }) };
-  }
+    select {
+        cursor: pointer;
+    }
+
+    button {
+        background: #00ffc6;
+        color: #000;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    button:hover {
+        background: #00e0b0;
+    }
+
+    .status {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 8px;
+        display: none;
+        font-weight: bold;
+        text-align: center;
+    }
+
+    .status.success { background: #28a745; color: #fff; }
+    .status.error { background: #dc3545; color: #fff; }
+    .status.info { background: #ffc107; color: #000; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>HWID Reset</h1>
+
+    <label for="category">Category</label>
+    <select id="category">
+        <option value="">Select Category</option>
+        <option value="EREN">EREN</option>
+        <option value="INSANE">INSANE</option>
+    </select>
+
+    <label for="username">Username</label>
+    <input type="text" id="username" placeholder="Enter your username">
+
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="Enter your password">
+
+    <button id="resetBtn">Reset HWID</button>
+
+    <div id="status" class="status"></div>
+</div>
+
+<script>
+const resetBtn = document.getElementById('resetBtn');
+const statusDiv = document.getElementById('status');
+
+function showStatus(message, type='info') {
+    statusDiv.style.display = 'block';
+    statusDiv.textContent = message;
+    statusDiv.className = 'status ' + type;
 }
+
+resetBtn.addEventListener('click', async () => {
+    const category = document.getElementById('category').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const newHWID = ""; // reset to blank string
+
+    if (!category || !username || !password) {
+        showStatus('⚠️ Please fill in all fields.', 'error');
+        return;
+    }
+
+    showStatus('⏳ Resetting HWID...', 'info');
+
+    try {
+        const res = await fetch(`/.netlify/functions/updateHWID?category=${encodeURIComponent(category)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&updatedhwid=${encodeURIComponent(newHWID)}`);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Unknown error');
+
+        showStatus(`✅ HWID reset successfully!`, 'success');
+    } catch (err) {
+        // If reset failed due to lastReset restriction, show payment message
+        if (err.message.includes('once per month')) {
+            showStatus('⚠️ HWID already reset this month. Pay $1 to reset again.', 'info');
+        } else {
+            showStatus('❌ ' + err.message, 'error');
+        }
+    }
+});
+</script>
+
+</body>
+</html>
