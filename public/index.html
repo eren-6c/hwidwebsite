@@ -125,14 +125,18 @@ resetBtn.addEventListener('click', async () => {
 
     try {
         const res = await fetch(`/.netlify/functions/updateHWID?category=${encodeURIComponent(category)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&updatedhwid=${encodeURIComponent(newHWID)}`);
-
         const data = await res.json();
 
         if (!res.ok) throw new Error(data.error || 'Unknown error');
 
         showStatus(`✅ HWID reset successfully!`, 'success');
     } catch (err) {
-        showStatus('❌ ' + err.message, 'error');
+        // If reset failed due to lastReset restriction, show payment message
+        if (err.message.includes('once per month')) {
+            showStatus('⚠️ HWID already reset this month. Pay $1 to reset again.', 'info');
+        } else {
+            showStatus('❌ ' + err.message, 'error');
+        }
     }
 });
 </script>
