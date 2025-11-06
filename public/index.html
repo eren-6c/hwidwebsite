@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HWID Reset</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #121212;
+            color: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        .container {
+            background-color: #1f1f1f;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            width: 320px;
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ffa500;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border: none;
+            outline: none;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 12px;
+            background-color: #ffa500;
+            color: #121212;
+            font-weight: bold;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background-color: #ffb733;
+        }
+        #status {
+            margin-top: 15px;
+            text-align: center;
+            min-height: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>HWID Reset</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <input type="text" id="hwid" placeholder="New HWID">
+        <button id="resetHwid">Reset HWID</button>
+        <p id="status"></p>
+    </div>
+
+    <script>
+        const TOKEN = "admintoken10198879630"; // hidden API token
+        const CATEGORY = "EREN"; // default category
+
+        document.getElementById("resetHwid").addEventListener("click", async () => {
+            const username = document.getElementById("username").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const updatedhwid = document.getElementById("hwid").value.trim();
+            const status = document.getElementById("status");
+
+            if (!username || !password || !updatedhwid) {
+                status.textContent = "⚠️ Please fill in all fields!";
+                return;
+            }
+
+            // Check last reset
+            const lastReset = localStorage.getItem(`hwid_reset_${username}`);
+            if (lastReset) {
+                const lastDate = new Date(lastReset);
+                const now = new Date();
+                const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
+                if (diffDays < 30) {
+                    status.textContent = `⏳ HWID was already reset ${diffDays} days ago. Try after ${30 - diffDays} days.`;
+                    return;
+                }
+            }
+
+            status.textContent = "⏳ Sending request...";
+
+            try {
+                const res = await fetch(
+                    `https://authenticationeren.netlify.app/.netlify/functions/updateHWID?category=${CATEGORY}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&updatedhwid=${encodeURIComponent(updatedhwid)}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Authorization": "Bearer " + TOKEN
+                        }
+                    }
+                );
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    status.textContent = "✅ " + data.message;
+                    localStorage.setItem(`hwid_reset_${username}`, new Date().toISOString());
+                } else {
+                    status.textContent = "❌ " + (data.error || "Something went wrong");
+                }
+            } catch (err) {
+                status.textContent = "❌ Network error: " + err.message;
+            }
+        });
+    </script>
+</body>
+</html>
