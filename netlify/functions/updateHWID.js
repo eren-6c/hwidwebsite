@@ -74,10 +74,24 @@ export async function handler(event) {
       return { statusCode: 401, body: JSON.stringify({ error: 'Invalid password' }) };
     }
 
-    // 7. Update HWID (set to empty)
-    content[category][username].hwid = '';
+    // 7. Check lastReset (optional: enforce 1 reset/month)
+    const now = new Date();
+    if (user.lastReset) {
+      const lastResetDate = new Date(user.lastReset);
+      const diffDays = (now - lastResetDate) / (1000 * 60 * 60 * 24);
+      if (diffDays < 30) {
+        return {
+          statusCode: 403,
+          body: JSON.stringify({ error: 'HWID can only be reset once per month' }),
+        };
+      }
+    }
 
-    // 8. Commit changes to GitHub
+    // 8. Update HWID and lastReset
+    content[category][username].hwid = '';
+    content[category][username].lastReset = now.toISOString(); // adds lastReset field
+
+    // 9. Commit changes to GitHub
     const commitRes = await fetch(fileUrl, {
       method: 'PUT',
       headers: {
@@ -98,7 +112,11 @@ export async function handler(event) {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true, message: `HWID reset successfully for ${username}` }),
+      body: JSON.stringify({
+        success: true,
+        message: `HWID reset successfully for ${username}`,
+        lastReset: content[category][username].lastReset,
+      }),
     };
 
   } catch (err) {
