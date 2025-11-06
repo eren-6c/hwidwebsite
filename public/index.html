@@ -1,127 +1,89 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HWID Reset</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #121212;
-            color: #f0f0f0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-        }
-        .container {
-            background-color: #1f1f1f;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.5);
-            width: 320px;
-        }
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #ffa500;
-        }
-        input {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 6px;
-            border: none;
-            outline: none;
-            font-size: 16px;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 12px;
-            background-color: #ffa500;
-            color: #121212;
-            font-weight: bold;
-            font-size: 16px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        button:hover {
-            background-color: #ffb733;
-        }
-        #status {
-            margin-top: 15px;
-            text-align: center;
-            min-height: 20px;
-            font-weight: bold;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HWID Reset | ErenXiters</title>
+<style>
+body { font-family: 'Segoe UI', sans-serif; background:#1a1a1a; color:#fff; display:flex; justify-content:center; align-items:center; height:100vh; margin:0; }
+.container { background:#111; padding:30px; border-radius:12px; width:100%; max-width:400px; }
+h1 { text-align:center; color:#00ffc6; margin-bottom:20px; }
+label { display:block; margin-top:15px; font-weight:bold; }
+input, select, button { width:100%; padding:10px; margin-top:5px; border-radius:8px; border:none; font-size:16px; }
+button { margin-top:20px; background:#00ffc6; color:#000; font-weight:bold; cursor:pointer; transition:0.3s; }
+button:hover { background:#00e0b0; }
+.status { margin-top:15px; padding:10px; border-radius:8px; display:none; font-weight:bold; text-align:center; }
+.status.success { background:#28a745; color:#fff; }
+.status.error { background:#dc3545; color:#fff; }
+.status.info { background:#ffc107; color:#000; }
+</style>
 </head>
 <body>
-    <div class="container">
-        <h2>HWID Reset</h2>
-        <input type="text" id="username" placeholder="Username">
-        <input type="password" id="password" placeholder="Password">
-        <input type="text" id="hwid" placeholder="New HWID">
-        <button id="resetHwid">Reset HWID</button>
-        <p id="status"></p>
-    </div>
 
-    <script>
-        const TOKEN = "admintoken10198879630"; // hidden API token
-        const CATEGORY = "EREN"; // default category
+<div class="container">
+<h1>HWID Reset</h1>
 
-        document.getElementById("resetHwid").addEventListener("click", async () => {
-            const username = document.getElementById("username").value.trim();
-            const password = document.getElementById("password").value.trim();
-            const updatedhwid = document.getElementById("hwid").value.trim();
-            const status = document.getElementById("status");
+<label for="category">Category</label>
+<select id="category">
+    <option value="">Select Category</option>
+    <option value="EREN">EREN</option>
+    <option value="INSANE">INSANE</option>
+    <option value="MAXGAMER">MAXGAMER</option>
+    <option value="SALZ">SALZ</option>
+    <option value="CYBER">CYBER</option>
+    <option value="AIM">AIM</option>
+    <option value="SNIPER">SNIPER</option>
+    <option value="B4EVER">B4EVER</option>
+</select>
 
-            if (!username || !password || !updatedhwid) {
-                status.textContent = "⚠️ Please fill in all fields!";
-                return;
-            }
+<label for="username">Username</label>
+<input type="text" id="username" placeholder="Enter username">
 
-            // Check last reset
-            const lastReset = localStorage.getItem(`hwid_reset_${username}`);
-            if (lastReset) {
-                const lastDate = new Date(lastReset);
-                const now = new Date();
-                const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
-                if (diffDays < 30) {
-                    status.textContent = `⏳ HWID was already reset ${diffDays} days ago. Try after ${30 - diffDays} days.`;
-                    return;
-                }
-            }
+<label for="password">Password</label>
+<input type="password" id="password" placeholder="Enter password">
 
-            status.textContent = "⏳ Sending request...";
+<button id="resetBtn">Reset HWID</button>
 
-            try {
-                const res = await fetch(
-                    `https://authenticationeren.netlify.app/.netlify/functions/updateHWID?category=${CATEGORY}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&updatedhwid=${encodeURIComponent(updatedhwid)}`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Authorization": "Bearer " + TOKEN
-                        }
-                    }
-                );
+<div id="status" class="status"></div>
+</div>
 
-                const data = await res.json();
+<script>
+const resetBtn = document.getElementById('resetBtn');
+const statusDiv = document.getElementById('status');
 
-                if (res.ok && data.success) {
-                    status.textContent = "✅ " + data.message;
-                    localStorage.setItem(`hwid_reset_${username}`, new Date().toISOString());
-                } else {
-                    status.textContent = "❌ " + (data.error || "Something went wrong");
-                }
-            } catch (err) {
-                status.textContent = "❌ Network error: " + err.message;
-            }
-        });
-    </script>
+function showStatus(msg, type='info') {
+    statusDiv.style.display='block';
+    statusDiv.textContent = msg;
+    statusDiv.className = 'status ' + type;
+}
+
+resetBtn.addEventListener('click', async () => {
+    const category = document.getElementById('category').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+
+    if (!category || !username || !password) {
+        showStatus('⚠️ Fill all fields', 'error');
+        return;
+    }
+
+    showStatus('⏳ Resetting HWID...', 'info');
+
+    try {
+        const newHWID = crypto.randomUUID(); // generates HWID
+        const url = `/.netlify/functions/updateHWID?category=${encodeURIComponent(category)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&updatedhwid=${encodeURIComponent(newHWID)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Unknown error');
+
+        showStatus(`✅ HWID reset! New HWID: ${newHWID}`, 'success');
+    } catch(err) {
+        showStatus('❌ ' + err.message, 'error');
+    }
+});
+</script>
+
 </body>
 </html>
