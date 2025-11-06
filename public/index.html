@@ -110,10 +110,6 @@
 const resetBtn = document.getElementById('resetBtn');
 const statusDiv = document.getElementById('status');
 
-// Replace with your admin token
-const API_TOKEN = process.env.TOKEN6C;
-const FUNCTION_URL = process.env.URL6C;
-
 function showStatus(message, type='info') {
     statusDiv.style.display = 'block';
     statusDiv.textContent = message;
@@ -124,8 +120,7 @@ resetBtn.addEventListener('click', async () => {
     const category = document.getElementById('category').value.trim();
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
-    const newHWID = "";
-
+    const newHWID = ""; // reset to blank string
 
     if (!category || !username || !password) {
         showStatus('⚠️ Please fill in all fields.', 'error');
@@ -135,19 +130,13 @@ resetBtn.addEventListener('click', async () => {
     showStatus('⏳ Resetting HWID...', 'info');
 
     try {
-        const url = `${FUNCTION_URL}?category=${encodeURIComponent(category)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&updatedhwid=${encodeURIComponent(newHWID)}`;
-        
-        const res = await fetch(url, {
-            headers: {
-                'Authorization': 'Bearer ' + API_TOKEN
-            }
-        });
+        const res = await fetch(`/.netlify/functions/updateHWID?category=${encodeURIComponent(category)}&username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&updatedhwid=${encodeURIComponent(newHWID)}`);
 
         const data = await res.json();
 
         if (!res.ok) throw new Error(data.error || 'Unknown error');
 
-        showStatus(`✅ HWID reset successfully!\nNew HWID: ${newHWID}`, 'success');
+        showStatus(`✅ HWID reset successfully!`, 'success');
     } catch (err) {
         showStatus('❌ ' + err.message, 'error');
     }
