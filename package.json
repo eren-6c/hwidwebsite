@@ -1,0 +1,14 @@
+{
+  "name": "authentication-website",
+  "version": "1.0.0",
+  "description": "GitHub User Authentication Dashboard",
+  "scripts": {
+    "build": "echo 'Build complete'",
+    "start": "netlify dev"
+  },
+  "dependencies": {
+    "@octokit/rest": "^19.0.7",
+    "axios": "^1.3.4"
+  }
+}
+
