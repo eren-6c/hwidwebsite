@@ -111,8 +111,8 @@ const resetBtn = document.getElementById('resetBtn');
 const statusDiv = document.getElementById('status');
 
 // Replace with your admin token
-const API_TOKEN = 'admintoken10198879630';
-const FUNCTION_URL = 'https://erenxitershwid.netlify.app/.netlify/functions/updateHWID';
+const API_TOKEN = process.env.TOKEN6C;
+const FUNCTION_URL = process.env.URL6C;
 
 function showStatus(message, type='info') {
     statusDiv.style.display = 'block';
